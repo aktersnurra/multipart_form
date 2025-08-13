@@ -1,3 +1,7 @@
+### v0.7.0 2025-08-12 (Paris)
+
+- Add and improve the Miou support of `multipart_form` (@dinosaure, #41, #43)
+
 ### v0.6.0 2024-04-13 (Enna)
 
 - Introduce a new package `multipart_form-eio` (@Willenbrink, #35)
