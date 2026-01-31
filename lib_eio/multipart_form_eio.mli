@@ -48,14 +48,14 @@ val stream :
     and therefore should not be used when handling possibly large data. *)
 
 val of_stream_to_list :
-  string option Eio.Stream.t ->
+  string Eio.Stream.t ->
   Content_type.t ->
   (int t * (int * string) list, [> `Msg of string ]) result
 (** Similar to [Multipart_form.of_stream_to_list], but consumes a
    [Eio.Stream.t]. *)
 
 val of_stream_to_tree :
-  string option Eio.Stream.t ->
+  string Eio.Stream.t ->
   Content_type.t ->
   (string t, [> `Msg of string ]) result
 (** [of_stream_to_tree stream content_type] returns, if it succeeds, a value
