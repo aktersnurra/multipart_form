@@ -61,8 +61,14 @@ let of_stream_to_tbl s content_type =
   let parts_tbl = Hashtbl.create 0x10 in
   let rec consume_part () =
     let id, _, part_stream = Eio.Stream.take parts in
-    Eio.Stream.take part_stream |> Hashtbl.add parts_tbl id ;
-    consume_part () in
+    let rec drain acc =
+      match Eio.Stream.take part_stream with
+      | None -> String.concat "" (List.rev acc)
+      | Some chunk -> drain (chunk :: acc)
+    in
+    Hashtbl.add parts_tbl id (drain []);
+    consume_part ()
+  in
   Eio.Fiber.fork ~sw consume_part ;
   Eio.Promise.await_exn t |> Result.map (fun tree -> (tree, parts_tbl))
 
