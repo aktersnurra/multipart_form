@@ -12,7 +12,7 @@ let stream ~sw ?(bounds = 10) ~identify stream content_type =
     let id = fresh_id () in
     Queue.push (`Id (header, id)) q ;
     let push = function
-      | None -> (`End_of_part id) q
+      | None -> Queue.push (`End_of_part id) q
       | Some data -> Queue.push (`Data (id, data)) q in
     (push, id) in
   let parse = Multipart_form.parse ~emitters content_type in
@@ -27,11 +27,11 @@ let stream ~sw ?(bounds = 10) ~identify stream content_type =
         go ()
     | `Data (id, data) ->
         let _, stream = Hashtbl.find tbl id in
-        Eio.Stream.add stream data ;
+        Eio.Stream.add stream (Some data);
         go ()
     | `End_of_part id ->
         let _, stream = Hashtbl.find tbl id in
-        Eio.Stream.add stream None ;
+        Eio.Stream.add stream None;
         go ()
     | exception Queue.Empty -> (
         (* otherwise, continue parsing (thus adding elements to the queue) *)
