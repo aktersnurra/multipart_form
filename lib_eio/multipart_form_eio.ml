@@ -45,6 +45,7 @@ let stream ~sw ?(bounds = 10) ~identify stream content_type =
             let client_id_of_id id =
               let client_id, _ = Hashtbl.find tbl id in
               client_id in
+            Eio.Stream.add output None;
             Result.Ok (map client_id_of_id t)
         | `Fail _ -> Result.Error (`Msg "Invalid multipart/form")) in
   (Eio.Fiber.fork_promise ~sw go, output)
