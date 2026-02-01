@@ -9,7 +9,7 @@ val stream :
   string Eio.Stream.t ->
   Content_type.t ->
   ('id t, [> `Msg of string ]) result Eio.Promise.or_exn
-  * ('id * Header.t * string option Eio.Stream.t) Eio.Stream.t
+  * ('id * Header.t * string option Eio.Stream.t) option Eio.Stream.t
 (** [stream ~identify src content_type] returns:
     - a promise [th] about the parser
     - a stream [stream] of parts
