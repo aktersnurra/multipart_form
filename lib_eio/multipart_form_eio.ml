@@ -23,7 +23,7 @@ let stream ~sw ?(bounds = 10) ~identify stream content_type =
         let client_id = identify header in
         let stream = Eio.Stream.create bounds in
         Hashtbl.add tbl id (client_id, stream) ;
-        Eio.Stream.add output (client_id, header, stream) ;
+        Eio.Stream.add output (Some (client_id, header, stream)) ;
         go ()
     | `Data (id, data) ->
         let _, stream = Hashtbl.find tbl id in
@@ -61,14 +61,16 @@ let of_stream_to_tbl s content_type =
   let t, parts = stream ~sw ~identify s content_type in
   let parts_tbl = Hashtbl.create 0x10 in
   let rec consume_part () =
-    let id, _, part_stream = Eio.Stream.take parts in
-    let rec drain acc =
-      match Eio.Stream.take part_stream with
-      | None -> String.concat "" (List.rev acc)
-      | Some chunk -> drain (chunk :: acc)
-    in
-    Hashtbl.add parts_tbl id (drain []);
-    consume_part ()
+    match Eio.Stream.take parts with
+    | None -> ()
+    | Some (id, _, part_stream) ->
+        let rec drain acc =
+          match Eio.Stream.take part_stream with
+          | None -> String.concat "" (List.rev acc)
+          | Some chunk -> drain (chunk :: acc)
+        in
+        Hashtbl.add parts_tbl id (drain []);
+        consume_part ()
   in
   Eio.Fiber.fork ~sw consume_part ;
   Eio.Promise.await_exn t |> Result.map (fun tree -> (tree, parts_tbl))
