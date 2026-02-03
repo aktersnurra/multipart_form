@@ -35,16 +35,23 @@ let stream ~sw ?(bounds = 10) ~identify stream content_type =
         go ()
     | exception Queue.Empty -> (
         let chunk = Eio.Stream.take stream in
+        Eio.traceln "PARSER: got chunk len=%d" (String.length chunk);
         let data = if chunk = "" then `Eof else `String chunk in
+        Eio.traceln "PARSER: feeding %s" (if chunk = "" then "Eof" else "String");
         match parse data with
-        | `Continue -> go ()
+        | `Continue -> 
+            Eio.traceln "PARSER: Continue";
+            go ()
         | `Done t ->
+            Eio.traceln "PARSER: Done";
             let client_id_of_id id =
               let client_id, _ = Hashtbl.find tbl id in
               client_id in
             Eio.Stream.add output None;
             Result.Ok (map client_id_of_id t)
-        | `Fail _ -> Result.Error (`Msg "Invalid multipart/form")) in
+        | `Fail _ -> 
+            Eio.traceln "PARSER: Fail";
+            Result.Error (`Msg "Invalid multipart/form")) in
   (Eio.Fiber.fork_promise ~sw go, output)
 
 (* only used internally to implement of_stream_to_{tree,list} *)
