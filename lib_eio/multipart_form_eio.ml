@@ -34,11 +34,8 @@ let stream ~sw ?(bounds = 10) ~identify stream content_type =
         Eio.Stream.add stream None;
         go ()
     | exception Queue.Empty -> (
-        (* otherwise, continue parsing (thus adding elements to the queue) *)
-        let data =
-          match Eio.Stream.take_nonblocking stream with
-          | Some s -> `String s
-          | None -> `Eof in
+        let chunk = Eio.Stream.take stream in
+        let data = if chunk = "" then `Eof else `String chunk in
         match parse data with
         | `Continue -> go ()
         | `Done t ->
