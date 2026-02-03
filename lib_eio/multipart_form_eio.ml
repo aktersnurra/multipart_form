@@ -38,17 +38,14 @@ let stream ~sw ?(bounds = 10) ~identify stream content_type =
           match Eio.Stream.take stream with "" -> `Eof | s -> `String s in
         match parse data with
         | `Continue ->
-            Eio.traceln "PARSER: Continue" ;
             go ()
         | `Done t ->
-            Eio.traceln "PARSER: Done" ;
             let client_id_of_id id =
               let client_id, _ = Hashtbl.find tbl id in
               client_id in
             Eio.Stream.add output None ;
             Result.Ok (map client_id_of_id t)
         | `Fail _ ->
-            Eio.traceln "PARSER: Fail" ;
             Result.Error (`Msg "Invalid multipart/form")) in
   (Eio.Fiber.fork_promise ~sw go, output)
 
