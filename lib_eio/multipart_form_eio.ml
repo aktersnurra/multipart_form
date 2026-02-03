@@ -27,30 +27,28 @@ let stream ~sw ?(bounds = 10) ~identify stream content_type =
         go ()
     | `Data (id, data) ->
         let _, stream = Hashtbl.find tbl id in
-        Eio.Stream.add stream (Some data);
+        Eio.Stream.add stream (Some data) ;
         go ()
     | `End_of_part id ->
         let _, stream = Hashtbl.find tbl id in
-        Eio.Stream.add stream None;
+        Eio.Stream.add stream None ;
         go ()
     | exception Queue.Empty -> (
-        let chunk = Eio.Stream.take stream in
-        Eio.traceln "PARSER: got chunk len=%d" (String.length chunk);
-        let data = if chunk = "" then `Eof else `String chunk in
-        Eio.traceln "PARSER: feeding %s" (if chunk = "" then "Eof" else "String");
+        let data =
+          match Eio.Stream.take stream with "" -> `Eof | s -> `String s in
         match parse data with
-        | `Continue -> 
-            Eio.traceln "PARSER: Continue";
+        | `Continue ->
+            Eio.traceln "PARSER: Continue" ;
             go ()
         | `Done t ->
-            Eio.traceln "PARSER: Done";
+            Eio.traceln "PARSER: Done" ;
             let client_id_of_id id =
               let client_id, _ = Hashtbl.find tbl id in
               client_id in
-            Eio.Stream.add output None;
+            Eio.Stream.add output None ;
             Result.Ok (map client_id_of_id t)
-        | `Fail _ -> 
-            Eio.traceln "PARSER: Fail";
+        | `Fail _ ->
+            Eio.traceln "PARSER: Fail" ;
             Result.Error (`Msg "Invalid multipart/form")) in
   (Eio.Fiber.fork_promise ~sw go, output)
 
@@ -71,11 +69,9 @@ let of_stream_to_tbl s content_type =
         let rec drain acc =
           match Eio.Stream.take part_stream with
           | None -> String.concat "" (List.rev acc)
-          | Some chunk -> drain (chunk :: acc)
-        in
-        Hashtbl.add parts_tbl id (drain []);
-        consume_part ()
-  in
+          | Some chunk -> drain (chunk :: acc) in
+        Hashtbl.add parts_tbl id (drain []) ;
+        consume_part () in
   Eio.Fiber.fork ~sw consume_part ;
   Eio.Promise.await_exn t |> Result.map (fun tree -> (tree, parts_tbl))
 
@@ -86,5 +82,5 @@ let of_stream_to_tree s content_type =
 let of_stream_to_list s content_type =
   of_stream_to_tbl s content_type
   |> Result.map (fun (tree, parts_tbl) ->
-         let assoc = Hashtbl.fold (fun k b a -> (k, b) :: a) parts_tbl [] in
-         (tree, assoc))
+      let assoc = Hashtbl.fold (fun k b a -> (k, b) :: a) parts_tbl [] in
+      (tree, assoc))
