@@ -521,7 +521,7 @@ let parse :
     match !state with
     | Angstrom.Unbuffered.Done (_, tree) -> `Done tree
     | Fail (_, _, msg) -> `Fail msg
-    | Partial { committed; continue } -> (
+    | Partial { committed; continue } ->
         Ke.Rke.N.shift_exn ke committed ;
         if committed = 0 then Ke.Rke.compress ke ;
         Log.debug (fun m -> m "Partial state of the multipart/form stream.") ;
@@ -554,10 +554,7 @@ let parse :
                 state :=
                   continue slice ~off:0 ~len:(Bigstringaf.length slice)
                     Incomplete)) ;
-        match !state with
-        | Angstrom.Unbuffered.Done (_, tree) -> `Done tree
-        | Fail (_, _, msg) -> `Fail msg
-        | Partial _ -> `Continue)
+        `Continue
 
 let of_stream_tbl stream content_type =
   let gen =

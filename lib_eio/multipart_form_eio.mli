@@ -5,8 +5,9 @@ open Multipart_form
 val stream :
   sw:Eio.Switch.t ->
   ?bounds:int ->
+  ?buffer_size:int ->
   identify:(Header.t -> 'id) ->
-  string Eio.Stream.t ->
+  _ Eio.Flow.source ->
   Content_type.t ->
   ('id t, [> `Msg of string ]) result Eio.Promise.or_exn
   * ('id * Header.t * string option Eio.Stream.t) option Eio.Stream.t
@@ -47,17 +48,15 @@ val stream :
     These functions will store the entire multipart contents in memory,
     and therefore should not be used when handling possibly large data. *)
 
-val of_stream_to_list :
-  string Eio.Stream.t ->
+val of_flow_to_list :
+  _ Eio.Flow.source ->
   Content_type.t ->
   (int t * (int * string) list, [> `Msg of string ]) result
 (** Similar to [Multipart_form.of_stream_to_list], but consumes a
    [Eio.Stream.t]. *)
 
-val of_stream_to_tree :
-  string Eio.Stream.t ->
-  Content_type.t ->
-  (string t, [> `Msg of string ]) result
+val of_flow_to_tree :
+  _ Eio.Flow.source -> Content_type.t -> (string t, [> `Msg of string ]) result
 (** [of_stream_to_tree stream content_type] returns, if it succeeds, a value
    {!Multipart_form.t} representing the multipart document, where the contents of the parts are
    stored as strings. It is equivalent to [of_stream_to_list] where references

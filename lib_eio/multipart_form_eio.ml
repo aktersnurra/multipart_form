@@ -1,8 +1,10 @@
 open Multipart_form
 
-let stream ~sw ?(bounds = 10) ~identify stream content_type =
+let stream ~sw ?(bounds = 10) ?(buffer_size = 8192) ~identify flow content_type
+    =
   let output = Eio.Stream.create max_int in
   let q = Queue.create () in
+  let buf = Cstruct.create buffer_size in
   let fresh_id =
     let r = ref 0 in
     fun () ->
@@ -35,29 +37,30 @@ let stream ~sw ?(bounds = 10) ~identify stream content_type =
         go ()
     | exception Queue.Empty -> (
         let data =
-          match Eio.Stream.take stream with "" -> `Eof | s -> `String s in
+          try
+            let n = Eio.Flow.single_read flow buf in
+            `String (Cstruct.to_string (Cstruct.sub buf 0 n))
+          with End_of_file -> `Eof in
         match parse data with
-        | `Continue ->
-            go ()
+        | `Continue -> go ()
         | `Done t ->
             let client_id_of_id id =
               let client_id, _ = Hashtbl.find tbl id in
               client_id in
             Eio.Stream.add output None ;
             Result.Ok (map client_id_of_id t)
-        | `Fail _ ->
-            Result.Error (`Msg "Invalid multipart/form")) in
+        | `Fail _ -> Result.Error (`Msg "Invalid multipart/form")) in
   (Eio.Fiber.fork_promise ~sw go, output)
 
 (* only used internally to implement of_stream_to_{tree,list} *)
-let of_stream_to_tbl s content_type =
+let of_flow_to_tbl f content_type =
   let identify =
     let id = ref (-1) in
     fun _header ->
       incr id ;
       !id in
   Eio.Switch.run @@ fun sw ->
-  let t, parts = stream ~sw ~identify s content_type in
+  let t, parts = stream ~sw ~identify f content_type in
   let parts_tbl = Hashtbl.create 0x10 in
   let rec consume_part () =
     match Eio.Stream.take parts with
@@ -72,12 +75,12 @@ let of_stream_to_tbl s content_type =
   Eio.Fiber.fork ~sw consume_part ;
   Eio.Promise.await_exn t |> Result.map (fun tree -> (tree, parts_tbl))
 
-let of_stream_to_tree s content_type =
-  of_stream_to_tbl s content_type
+let of_flow_to_tree f content_type =
+  of_flow_to_tbl f content_type
   |> Result.map (fun (tree, parts_tbl) -> map (Hashtbl.find parts_tbl) tree)
 
-let of_stream_to_list s content_type =
-  of_stream_to_tbl s content_type
+let of_flow_to_list f content_type =
+  of_flow_to_tbl f content_type
   |> Result.map (fun (tree, parts_tbl) ->
       let assoc = Hashtbl.fold (fun k b a -> (k, b) :: a) parts_tbl [] in
       (tree, assoc))
