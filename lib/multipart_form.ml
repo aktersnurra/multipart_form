@@ -441,34 +441,34 @@ let octet ~emitter boundary header =
       let write_data data = emitter (Some data) in
 
       (match content_encoding header with
-      | `Quoted_printable ->
-          Log.debug (fun m -> m "Decode the quoted-printable final part.") ;
-          QP.to_end_of_input ~write_data ~write_line
-      | `Base64 ->
-          Log.debug (fun m -> m "Decode the base64 final part.") ;
-          B64.to_end_of_input ~write_data
-      | `Bit7 | `Bit8 | `Binary ->
-          Log.debug (fun m -> m "Decode the 8-bit final part.") ;
-          RAW.to_end_of_input ~write_data
-      | `Ietf_token v | `X_token v ->
-          failf "Invalid Content-Transfer-Encoding value (%s)" v)
+        | `Quoted_printable ->
+            Log.debug (fun m -> m "Decode the quoted-printable final part.") ;
+            QP.to_end_of_input ~write_data ~write_line
+        | `Base64 ->
+            Log.debug (fun m -> m "Decode the base64 final part.") ;
+            B64.to_end_of_input ~write_data
+        | `Bit7 | `Bit8 | `Binary ->
+            Log.debug (fun m -> m "Decode the 8-bit final part.") ;
+            RAW.to_end_of_input ~write_data
+        | `Ietf_token v | `X_token v ->
+            failf "Invalid Content-Transfer-Encoding value (%s)" v)
       >>= fun () ->
       emitter None ;
       return ()
   | Some boundary ->
       let end_of_body = Rfc2046.make_delimiter boundary in
       (match content_encoding header with
-      | `Quoted_printable ->
-          Log.debug (fun m -> m "Decode a quoted-printable part.") ;
-          QP.with_emitter ~emitter end_of_body
-      | `Base64 ->
-          Log.debug (fun m -> m "Decode a base64 part.") ;
-          B64.with_emitter ~emitter end_of_body
-      | `Bit7 | `Bit8 | `Binary ->
-          Log.debug (fun m -> m "Decode a 8-bit part.") ;
-          RAW.with_emitter ~emitter end_of_body
-      | `Ietf_token v | `X_token v ->
-          failf "Invalid Content-Transfer-Encoding value (%s)" v)
+        | `Quoted_printable ->
+            Log.debug (fun m -> m "Decode a quoted-printable part.") ;
+            QP.with_emitter ~emitter end_of_body
+        | `Base64 ->
+            Log.debug (fun m -> m "Decode a base64 part.") ;
+            B64.with_emitter ~emitter end_of_body
+        | `Bit7 | `Bit8 | `Binary ->
+            Log.debug (fun m -> m "Decode a 8-bit part.") ;
+            RAW.with_emitter ~emitter end_of_body
+        | `Ietf_token v | `X_token v ->
+            failf "Invalid Content-Transfer-Encoding value (%s)" v)
       >>= fun () ->
       emitter None ;
       return ()
